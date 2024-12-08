@@ -1,5 +1,3 @@
-use std::sync::RwLockWriteGuard;
-
 fn parse_input(input: &str) -> Vec<Vec<i32>> {
     input
         .trim()
@@ -8,19 +6,30 @@ fn parse_input(input: &str) -> Vec<Vec<i32>> {
         .collect()
 }
 
+fn is_safe(row: &[i32], ignore: usize) -> bool {
+    let row: Vec<i32> = row
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| i != &ignore)
+        .map(|(_, &v)| v)
+        .collect();
+    let mut iter = row.windows(2).map(|v| v[0] - v[1]);
+    (iter.clone().all(|v| v < 0) || iter.clone().all(|v| v > 0))
+        && iter.all(|v| (1..=3).contains(&v.abs()))
+}
+
 pub fn part_one(input: &str) -> usize {
     parse_input(input)
         .iter()
-        .map(|row| row.windows(2).map(|v| v[0] - v[1]).collect::<Vec<i32>>())
-        .filter(|row| {
-            row.iter().all(|&v| v < 0) || row.iter().all(|&v| v > 0)
-        })
-        .filter(|row| row.iter().all(|&v| (1..=3).contains(&v.abs())))
+        .filter(|row| is_safe(row, row.len()))
         .count()
 }
 
-pub fn part_two(input: &str) -> i32 {
-    0
+pub fn part_two(input: &str) -> usize {
+    parse_input(input)
+        .iter()
+        .filter(|row| (0..=row.len()).any(|ignore| is_safe(row, ignore)))
+        .count()
 }
 
 #[cfg(test)]
@@ -32,6 +41,6 @@ mod tests {
     fn example() {
         let input = read_example(2);
         assert_eq!(part_one(&input), 2);
-        assert_eq!(part_two(&input), 0);
+        assert_eq!(part_two(&input), 4);
     }
 }
