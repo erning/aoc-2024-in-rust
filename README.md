@@ -14,6 +14,10 @@ Part Two: 400
 --- Day 3: Mull It Over ---
 Part One: 185797128
 Part Two: 89798695
+
+--- Day 4: Ceres Search ---
+Part One: 2547
+Part Two: 1939
 ```
 
 `Apple M1 Max`
