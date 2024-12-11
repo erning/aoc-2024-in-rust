@@ -42,12 +42,17 @@ fn search(
     width: i32,
     height: i32,
     start: (i32, i32),
-) -> HashSet<(i32, i32)> {
+) -> (bool, HashSet<(i32, i32, usize)>) {
     let mut d = 0;
     let (mut x, mut y) = start;
-    let mut visited: HashSet<(i32, i32)> = HashSet::new();
+    let mut visited: HashSet<(i32, i32, usize)> = HashSet::new();
+    let mut is_loop = false;
     while x >= 0 && x < width && y >= 0 && y < height {
-        visited.insert((x, y));
+        if visited.contains(&(x, y, d)) {
+            is_loop = true;
+            break;
+        }
+        visited.insert((x, y, d));
         let delta = DIRECTIONS[d];
         let p = (x + delta.0, y + delta.1);
         if obstructions.contains(&p) {
@@ -56,41 +61,39 @@ fn search(
         }
         (x, y) = p;
     }
-    visited
+    (is_loop, visited)
 }
 
 pub fn part_one(input: &str) -> usize {
     let (obstructions, width, height, start) = parse_input(input);
-    search(&obstructions, width, height, start).len()
+    let (_, visited) = search(&obstructions, width, height, start);
+    visited
+        .iter()
+        .map(|&(x, y, _)| (x, y))
+        .collect::<HashSet<(i32, i32)>>()
+        .len()
 }
 
 pub fn part_two(input: &str) -> usize {
-    let (obstructions, width, height, start) = parse_input(input);
-    search(&obstructions, width, height, start)
-        .iter()
-        .filter(|position| !obstructions.contains(position))
-        .filter(|&position| {
-            let mut d = 0;
-            let (mut x, mut y) = start;
-            let mut visited: HashSet<(i32, i32, usize)> = HashSet::new();
-            let mut found = false;
-            while x >= 0 && x < width && y >= 0 && y < height {
-                if visited.contains(&(x, y, d)) {
-                    found = true;
-                    break;
+    let (mut obstructions, width, height, start) = parse_input(input);
+    let (is_loop, visited) = search(&obstructions, width, height, start);
+    (if is_loop { 1 } else { 0 })
+        + visited
+            .iter()
+            .map(|&(x, y, _)| (x, y))
+            .collect::<HashSet<(i32, i32)>>()
+            .iter()
+            .filter(|&position| {
+                if obstructions.contains(position) {
+                    return false;
                 }
-                visited.insert((x, y, d));
-                let delta = DIRECTIONS[d];
-                let p = (x + delta.0, y + delta.1);
-                if p == *position || obstructions.contains(&p) {
-                    d = (d + 1) % 4;
-                    continue;
-                }
-                (x, y) = p;
-            }
-            found
-        })
-        .count()
+                obstructions.insert(*position);
+                let (is_loop, _) =
+                    search(&obstructions, width, height, start);
+                obstructions.remove(position);
+                is_loop
+            })
+            .count()
 }
 
 #[cfg(test)]
