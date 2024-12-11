@@ -1,7 +1,9 @@
 use std::collections::HashSet;
 
-#[allow(clippy::type_complexity)]
-fn parse_input(input: &str) -> (HashSet<(i32, i32)>, i32, i32, (i32, i32)) {
+type Pos = (i32, i32);
+const DIRECTIONS: [Pos; 4] = [(0, -1), (1, 0), (0, 1), (-1, 0)];
+
+fn parse_input(input: &str) -> (HashSet<Pos>, i32, i32, Pos) {
     let mut start = (0, 0);
     let mut height = 0;
     let mut width = 0;
@@ -29,71 +31,66 @@ fn parse_input(input: &str) -> (HashSet<(i32, i32)>, i32, i32, (i32, i32)) {
                     _ => false,
                 })
                 .map(|(x, _)| (x as i32, y as i32))
-                .collect::<Vec<(i32, i32)>>()
+                .collect::<Vec<_>>()
         })
         .collect();
     (obstructions, width + 1, height + 1, start)
 }
 
-const DIRECTIONS: [(i32, i32); 4] = [(0, -1), (1, 0), (0, 1), (-1, 0)];
-
 fn search(
-    obstructions: &HashSet<(i32, i32)>,
+    obstructions: &HashSet<Pos>,
     width: i32,
     height: i32,
-    start: (i32, i32),
-) -> (bool, HashSet<(i32, i32, usize)>) {
-    let mut d = 0;
-    let (mut x, mut y) = start;
-    let mut visited: HashSet<(i32, i32, usize)> = HashSet::new();
+    pretrace: &[(Pos, usize)],
+) -> (Vec<(Pos, usize)>, bool) {
+    let (mut p, mut d) = pretrace.last().unwrap();
+    let mut trace: Vec<_> = pretrace[..pretrace.len() - 1].to_vec();
+    let mut visited: HashSet<_> = trace.iter().cloned().collect();
     let mut is_loop = false;
-    while x >= 0 && x < width && y >= 0 && y < height {
-        if visited.contains(&(x, y, d)) {
+    while p.0 >= 0 && p.0 < width && p.1 >= 0 && p.1 < height {
+        if visited.contains(&(p, d)) {
             is_loop = true;
             break;
         }
-        visited.insert((x, y, d));
-        let delta = DIRECTIONS[d];
-        let p = (x + delta.0, y + delta.1);
-        if obstructions.contains(&p) {
+        trace.push((p, d));
+        visited.insert((p, d));
+        let dir = DIRECTIONS[d];
+        let q = (p.0 + dir.0, p.1 + dir.1);
+        if obstructions.contains(&q) {
             d = (d + 1) % 4;
             continue;
         }
-        (x, y) = p;
+        p = q;
     }
-    (is_loop, visited)
+    (trace, is_loop)
 }
 
 pub fn part_one(input: &str) -> usize {
     let (obstructions, width, height, start) = parse_input(input);
-    let (_, visited) = search(&obstructions, width, height, start);
-    visited
-        .iter()
-        .map(|&(x, y, _)| (x, y))
-        .collect::<HashSet<(i32, i32)>>()
-        .len()
+    let (trace, _) = search(&obstructions, width, height, &[(start, 0)]);
+    trace.iter().map(|&(p, _)| p).collect::<HashSet<_>>().len()
 }
 
 pub fn part_two(input: &str) -> usize {
     let (mut obstructions, width, height, start) = parse_input(input);
-    let (is_loop, visited) = search(&obstructions, width, height, start);
-    (if is_loop { 1 } else { 0 })
-        + visited
-            .iter()
-            .map(|&(x, y, _)| (x, y))
-            .collect::<HashSet<(i32, i32)>>()
-            .iter()
-            .filter(|&position| {
-                if obstructions.contains(position) {
-                    return false;
-                }
-                obstructions.insert(*position);
-                let (is_loop, _) =
-                    search(&obstructions, width, height, start);
-                obstructions.remove(position);
+    let mut visited = HashSet::new();
+    let (trace, _) = search(&obstructions, width, height, &[(start, 0)]);
+    trace
+        .iter()
+        .enumerate()
+        .skip(1)
+        .map(|(i, (p, _))| (i, *p))
+        .filter(|&(i, p)| {
+            !visited.contains(&p) && {
+                visited.insert(p);
+                obstructions.insert(p);
+                let (_, is_loop) =
+                    search(&obstructions, width, height, &trace[..i]);
+                obstructions.remove(&p);
                 is_loop
-            })
-            .count()
+            }
+        })
+        .count()
 }
 
 #[cfg(test)]
