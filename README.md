@@ -22,6 +22,10 @@ Part Two: 1939
 --- Day 5: Print Queue ---
 Part One: 6242
 Part Two: 5169
+
+--- Day 6: Guard Gallivant ---
+Part One: 4665
+Part Two: 1688
 ```
 
 `Apple M1 Max`
