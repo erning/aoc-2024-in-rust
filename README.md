@@ -26,6 +26,10 @@ Part Two: 5169
 --- Day 6: Guard Gallivant ---
 Part One: 4665
 Part Two: 1688
+
+--- Day 7: Bridge Repair ---
+Part One: 5837374519342
+Part Two: 492383931650959
 ```
 
 `Apple M1 Max`
