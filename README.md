@@ -30,6 +30,10 @@ Part Two: 1688
 --- Day 7: Bridge Repair ---
 Part One: 5837374519342
 Part Two: 492383931650959
+
+--- Day 8: Resonant Collinearity ---
+Part One: 299
+Part Two: 1032
 ```
 
 `Apple M1 Max`
