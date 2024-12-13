@@ -42,6 +42,10 @@ Part Two: 6382582136592
 --- Day 10: Hoof It ---
 Part One: 667
 Part Two: 1344
+
+--- Day 11: Plutonian Pebbles ---
+Part One: 187738
+Part Two: 223767210249237
 ```
 
 `Apple M1 Max`
