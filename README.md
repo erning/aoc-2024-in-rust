@@ -34,6 +34,10 @@ Part Two: 492383931650959
 --- Day 8: Resonant Collinearity ---
 Part One: 299
 Part Two: 1032
+
+--- Day 9: Disk Fragmenter ---
+Part One: 6353658451014
+Part Two: 6382582136592
 ```
 
 `Apple M1 Max`
