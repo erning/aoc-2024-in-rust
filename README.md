@@ -38,6 +38,10 @@ Part Two: 1032
 --- Day 9: Disk Fragmenter ---
 Part One: 6353658451014
 Part Two: 6382582136592
+
+--- Day 10: Hoof It ---
+Part One: 667
+Part Two: 1344
 ```
 
 `Apple M1 Max`
