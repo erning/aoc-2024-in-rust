@@ -46,6 +46,10 @@ Part Two: 1344
 --- Day 11: Plutonian Pebbles ---
 Part One: 187738
 Part Two: 223767210249237
+
+--- Day 12: Garden Groups ---
+Part One: 1461752
+Part Two: 904114
 ```
 
 `Apple M1 Max`
