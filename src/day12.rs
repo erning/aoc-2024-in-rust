@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::collections::VecDeque;
 
 type Grid = Vec<Vec<char>>;
 type Pos = (i32, i32);
@@ -8,55 +9,70 @@ fn parse_input(input: &str) -> Vec<Vec<char>> {
     input.trim().lines().map(|s| s.chars().collect()).collect()
 }
 
-fn plantap(
-    grid: &Grid,
-    x: i32,
-    y: i32,
-    visited: &mut HashSet<Pos>,
-) -> (usize, usize) {
-    visited.insert((x, y));
-    let mut area = 1;
-    let mut perimeter = 4;
+fn find_region(grid: &Grid, x: i32, y: i32) -> HashSet<Pos> {
     let h = grid.len() as i32;
     let w = grid[0].len() as i32;
+    let mut region: HashSet<Pos> = HashSet::new();
     let ch = grid[y as usize][x as usize];
-    for (dx, dy) in DIRS {
-        let (x, y) = (x + dx, y + dy);
-        if x < 0 || x >= w || y < 0 || y >= h {
+    let mut queue: VecDeque<Pos> = VecDeque::from([(x, y)]);
+    while let Some((x, y)) = queue.pop_front() {
+        if !region.insert((x, y)) {
             continue;
         }
-        let c = grid[y as usize][x as usize];
-        if ch != c {
-            continue;
-        }
-        perimeter -= 1;
-        if !visited.contains(&(x, y)) {
-            let v = plantap(grid, x, y, visited);
-            area += v.0;
-            perimeter += v.1;
+        for (dx, dy) in DIRS {
+            let (x, y) = (x + dx, y + dy);
+            if x < 0 || x >= w || y < 0 || y >= h {
+                continue;
+            }
+            if ch != grid[y as usize][x as usize] {
+                continue;
+            }
+            if region.contains(&(x, y)) {
+                continue;
+            }
+            queue.push_back((x, y));
         }
     }
-    (area, perimeter)
+    region
 }
 
-pub fn part_one(input: &str) -> usize {
-    let grid = parse_input(input);
+fn find_regions(grid: &Grid) -> Vec<HashSet<Pos>> {
     let h = grid.len() as i32;
     let w = grid[0].len() as i32;
-
-    let mut total_price = 0;
+    let mut regions = Vec::new();
     let mut visited: HashSet<Pos> = HashSet::new();
     for y in 0..h {
         for x in 0..w {
             if visited.contains(&(x, y)) {
                 continue;
             }
-            let (area, perimeter) = plantap(&grid, x, y, &mut visited);
-            let price = area * perimeter;
-            total_price += price;
+            let region = find_region(grid, x, y);
+            visited.extend(region.iter().cloned());
+            regions.push(region);
         }
     }
-    total_price
+    regions
+}
+
+fn region_perimeter(region: &HashSet<Pos>) -> usize {
+    let mut v = 0;
+    for (x, y) in region.iter() {
+        for (dx, dy) in DIRS {
+            let (x, y) = (x + dx, y + dy);
+            if region.contains(&(x, y)) {
+                v += 1;
+            }
+        }
+    }
+    region.len() * 4 - v
+}
+
+pub fn part_one(input: &str) -> usize {
+    let grid = parse_input(input);
+    find_regions(&grid)
+        .into_iter()
+        .map(|region| region.len() * region_perimeter(&region))
+        .sum()
 }
 
 pub fn part_two(input: &str) -> usize {
@@ -80,13 +96,12 @@ mod tests {
                 "OOOOO\n"
             );
         let grid = parse_input(INPUT);
-        let mut visited: HashSet<Pos> = HashSet::new();
-        let (area, perimeter) = plantap(&grid, 0, 0, &mut visited);
-        assert_eq!(area, 21);
-        assert_eq!(perimeter, 36);
-        let (area, perimeter) = plantap(&grid, 1, 1, &mut visited);
-        assert_eq!(area, 1);
-        assert_eq!(perimeter, 4);
+        let region = find_region(&grid, 0, 0);
+        assert_eq!(region.len(), 21);
+        assert_eq!(region_perimeter(&region), 36);
+        let region = find_region(&grid, 1, 1);
+        assert_eq!(region.len(), 1);
+        assert_eq!(region_perimeter(&region), 4);
     }
 
     #[test]
