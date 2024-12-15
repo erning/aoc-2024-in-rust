@@ -50,6 +50,10 @@ Part Two: 223767210249237
 --- Day 12: Garden Groups ---
 Part One: 1461752
 Part Two: 904114
+
+--- Day 13: Claw Contraption ---
+Part One: 29388
+Part Two: 99548032866004
 ```
 
 `Apple M1 Max`
