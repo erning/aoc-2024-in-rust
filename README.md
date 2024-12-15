@@ -54,6 +54,10 @@ Part Two: 904114
 --- Day 13: Claw Contraption ---
 Part One: 29388
 Part Two: 99548032866004
+
+--- Day 14: Restroom Redoubt ---
+Part One: 223020000
+Part Two: 7338
 ```
 
 `Apple M1 Max`

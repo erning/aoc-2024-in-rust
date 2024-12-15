@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 type Position = (i32, i32);
 type Velocity = (i32, i32);
 type Robot = (Position, Velocity);
@@ -74,8 +76,30 @@ pub fn part_one(input: &str) -> usize {
     safety_factor(input, 101, 103, 100)
 }
 
-pub fn part_two(input: &str) -> usize {
-    0
+pub fn part_two(input: &str) -> i32 {
+    let robots = parse_input(input);
+    let (w, h) = (101, 103);
+    // if there's a picture. most robots should be connected to show it.
+    // so we calculate the count of connected robot each second. and find
+    // the max one.
+    (0..w * h)
+        .map(|s| move_robots(&robots, w, h, s))
+        .map(|positions| positions.into_iter().collect::<HashSet<Position>>())
+        .map(|positions| {
+            positions
+                .iter()
+                .map(|&(x, y)| {
+                    [(x, y - 1), (x + 1, y), (x, y + 1), (x - 1, y)]
+                        .into_iter()
+                        .filter(|p| positions.contains(p))
+                        .count()
+                })
+                .sum::<usize>()
+        })
+        .enumerate()
+        .max_by(|(_, a), (_, b)| a.cmp(b))
+        .unwrap()
+        .0 as i32
 }
 
 #[cfg(test)]
