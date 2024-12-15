@@ -29,6 +29,7 @@ fn main() {
         puzzle!(day11, "Plutonian Pebbles"),
         puzzle!(day12, "Garden Groups"),
         puzzle!(day13, "Claw Contraption"),
+        puzzle!(day14, "Restroom Redoubt"),
     ];
 
     let filename = match env::args().find(|a| a == "--example") {
