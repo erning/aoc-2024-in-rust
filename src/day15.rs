@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::HashMap;
 
 const DIRS: [(i32, i32); 4] = [(0, -1), (1, 0), (0, 1), (-1, 0)];
 
@@ -7,8 +7,7 @@ type Pos = (i32, i32);
 #[derive(Debug)]
 struct Map {
     robot: Pos,
-    boxes: HashSet<Pos>,
-    walls: HashSet<Pos>,
+    tiles: HashMap<Pos, char>,
     w: i32,
     h: i32,
 }
@@ -16,7 +15,7 @@ struct Map {
 impl Map {
     fn find_empty(&self, p: Pos, dir: usize) -> Option<Pos> {
         let (mut x, mut y) = (p.0 + DIRS[dir].0, p.1 + DIRS[dir].1);
-        while self.boxes.contains(&(x, y)) {
+        while self.tiles.get(&(x, y)) == Some(&'O') {
             x += DIRS[dir].0;
             y += DIRS[dir].1;
         }
@@ -29,8 +28,7 @@ impl Map {
 
     fn is_empty(&self, p: Pos) -> bool {
         self.robot != p
-            && !self.boxes.contains(&p)
-            && !self.walls.contains(&p)
+            && !self.tiles.contains_key(&p)
             && p.0 >= 0
             && p.0 < self.w
             && p.1 >= 0
@@ -42,8 +40,8 @@ impl Map {
         if self.is_empty(p) {
             self.robot = p;
         } else if let Some(empty) = self.find_empty(self.robot, dir) {
-            self.boxes.remove(&p);
-            self.boxes.insert(empty);
+            self.tiles.remove(&p);
+            self.tiles.insert(empty, 'O');
             self.robot = p;
         }
     }
@@ -53,8 +51,7 @@ fn parse_input(input: &str) -> (Map, Vec<usize>) {
     let sections: Vec<&str> = input.trim().splitn(2, "\n\n").collect();
     let map = {
         let mut robot: Pos = (-1, -1);
-        let mut boxes: HashSet<Pos> = HashSet::new();
-        let mut walls: HashSet<Pos> = HashSet::new();
+        let mut tiles: HashMap<Pos, char> = HashMap::new();
         let mut w = 0;
         let mut h = 0;
         sections[0].trim().lines().enumerate().for_each(|(y, s)| {
@@ -67,23 +64,14 @@ fn parse_input(input: &str) -> (Map, Vec<usize>) {
                     '@' => {
                         robot = (x, y);
                     }
-                    'O' => {
-                        boxes.insert((x, y));
-                    }
-                    '#' => {
-                        walls.insert((x, y));
+                    'O' | '#' => {
+                        tiles.insert((x, y), ch);
                     }
                     _ => {}
                 };
             });
         });
-        Map {
-            robot,
-            boxes,
-            walls,
-            w,
-            h,
-        }
+        Map { robot, tiles, w, h }
     };
     let movements = sections[1]
         .trim()
@@ -98,16 +86,17 @@ fn parse_input(input: &str) -> (Map, Vec<usize>) {
             })
         })
         .collect();
-
-    // println!("{:?}", map);
-    // println!("{:?}", movements);
     (map, movements)
 }
 
 pub fn part_one(input: &str) -> i32 {
     let (mut map, movements) = parse_input(input);
     movements.iter().for_each(|dir| map.move_robot(*dir));
-    map.boxes.iter().map(|(x, y)| x + 100 * y).sum()
+    map.tiles
+        .into_iter()
+        .filter(|(_, ch)| ch == &'O')
+        .map(|((x, y), _)| x + 100 * y)
+        .sum()
 }
 
 pub fn part_two(input: &str) -> i32 {
@@ -121,7 +110,7 @@ mod tests {
 
     #[test]
     fn example_smaller() {
-        const INPUT_SMALLER: &str = concat!(
+        const INPUT: &str = concat!(
             "########\n",
             "#..O.O.#\n",
             "##@.O..#\n",
@@ -134,18 +123,36 @@ mod tests {
             "<^^>>>vv<v>>v<<"
         );
         // for this smaller example,
-        // the sum of all boxes' GPS coordinates is
-        // 2028
-        let (mut map, movements) = parse_input(INPUT_SMALLER);
+        // the sum of all boxes' GPS coordinates is 2028
+        let (mut map, movements) = parse_input(INPUT);
         movements.iter().for_each(|dir| map.move_robot(*dir));
-        let sum: i32 = map.boxes.iter().map(|(x, y)| x + 100 * y).sum();
+        let sum: i32 = map
+            .tiles
+            .into_iter()
+            .filter(|(_, ch)| ch == &'O')
+            .map(|((x, y), _)| x + 100 * y)
+            .sum();
         assert_eq!(sum, 2028);
+    }
+
+    fn example_smaller_2() {
+        const INPUT: &str = concat!(
+            "#######\n",
+            "#...#.#\n",
+            "#.....#\n",
+            "#..OO@#\n",
+            "#..O..#\n",
+            "#.....#\n",
+            "#######\n",
+            "\n",
+            "<vv<<^^<<^^"
+        );
     }
 
     #[test]
     fn example() {
         let input = read_example(15);
         assert_eq!(part_one(&input), 10092);
-        assert_eq!(part_two(&input), 0);
+        assert_eq!(part_two(&input), 9021);
     }
 }
