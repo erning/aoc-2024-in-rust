@@ -58,6 +58,10 @@ Part Two: 99548032866004
 --- Day 14: Restroom Redoubt ---
 Part One: 223020000
 Part Two: 7338
+
+--- Day 15: Warehouse Woes ---
+Part One: 1538871
+Part Two: 1543338
 ```
 
 `Apple M1 Max`
