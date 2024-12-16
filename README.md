@@ -62,6 +62,10 @@ Part Two: 7338
 --- Day 15: Warehouse Woes ---
 Part One: 1538871
 Part Two: 1543338
+
+--- Day 16: Reindeer Maze ---
+Part One: 66404
+Part Two: 433
 ```
 
 `Apple M1 Max`
