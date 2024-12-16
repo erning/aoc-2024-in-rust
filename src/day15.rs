@@ -14,13 +14,12 @@ struct Map {
 
 impl Map {
     fn find_empty(&self, p: Pos, dir: usize) -> Option<Pos> {
-        let (mut x, mut y) = (p.0 + DIRS[dir].0, p.1 + DIRS[dir].1);
-        while self.tiles.get(&(x, y)) == Some(&'O') {
-            x += DIRS[dir].0;
-            y += DIRS[dir].1;
+        let mut next = (p.0 + DIRS[dir].0, p.1 + DIRS[dir].1);
+        while self.tiles.get(&next) == Some(&'O') {
+            next = (next.0 + DIRS[dir].0, next.1 + DIRS[dir].1);
         }
-        if self.is_empty((x, y)) {
-            Some((x, y))
+        if self.is_empty(next) {
+            Some(next)
         } else {
             None
         }
@@ -36,13 +35,13 @@ impl Map {
     }
 
     fn move_robot(&mut self, dir: usize) {
-        let p = (self.robot.0 + DIRS[dir].0, self.robot.1 + DIRS[dir].1);
-        if self.is_empty(p) {
-            self.robot = p;
+        let next = (self.robot.0 + DIRS[dir].0, self.robot.1 + DIRS[dir].1);
+        if self.is_empty(next) {
+            self.robot = next;
         } else if let Some(empty) = self.find_empty(self.robot, dir) {
-            self.tiles.remove(&p);
+            self.tiles.remove(&next);
             self.tiles.insert(empty, 'O');
-            self.robot = p;
+            self.robot = next;
         }
     }
 }
@@ -66,26 +65,25 @@ impl LargeMap {
         if next.0 < 0 || next.0 >= self.w || next.1 < 0 || next.1 >= self.h {
             return false;
         }
-        // println!("next={:?}", (next, self.tiles.get(&next)));
         match self.tiles.get(&next) {
             Some('[') => {
                 boxes.insert(next, '[');
-                if dir % 2 == 0 {
-                    let next1 = (next.0 + 1, next.1);
-                    boxes.insert(next1, ']');
+                if dir != 3 {
+                    let next_pair = (next.0 + 1, next.1);
+                    boxes.insert(next_pair, ']');
                     self.affected_boxes(next, dir, boxes)
-                        && self.affected_boxes(next1, dir, boxes)
+                        && self.affected_boxes(next_pair, dir, boxes)
                 } else {
                     self.affected_boxes(next, dir, boxes)
                 }
             }
             Some(']') => {
                 boxes.insert(next, ']');
-                if dir % 2 == 0 {
-                    let next1 = (next.0 - 1, next.1);
-                    boxes.insert(next1, '[');
+                if dir != 1 {
+                    let next_pair = (next.0 - 1, next.1);
+                    boxes.insert(next_pair, '[');
                     self.affected_boxes(next, dir, boxes)
-                        && self.affected_boxes(next1, dir, boxes)
+                        && self.affected_boxes(next_pair, dir, boxes)
                 } else {
                     self.affected_boxes(next, dir, boxes)
                 }
@@ -104,10 +102,10 @@ impl LargeMap {
                 self.tiles.remove(p);
             });
             boxes
-                .iter()
+                .into_iter()
                 .map(|(p, ch)| ((p.0 + DIRS[dir].0, p.1 + DIRS[dir].1), ch))
                 .for_each(|(p, ch)| {
-                    self.tiles.insert(p, *ch);
+                    self.tiles.insert(p, ch);
                 })
         }
     }
