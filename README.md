@@ -66,6 +66,10 @@ Part Two: 1543338
 --- Day 16: Reindeer Maze ---
 Part One: 66404
 Part Two: 433
+
+--- Day 17: ---- ---
+Part One: 1,5,7,4,1,6,0,3,0
+Part Two: 108107574778365
 ```
 
 `Apple M1 Max`
