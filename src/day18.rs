@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 use std::collections::HashSet;
@@ -11,7 +12,6 @@ fn parse_input(input: &str) -> Vec<(i8, i8)> {
         .lines()
         .map(|s| {
             s.splitn(2, ',')
-                .into_iter()
                 .map(|v| v.parse::<i8>().unwrap())
                 .collect::<Vec<_>>()
         })
@@ -19,14 +19,15 @@ fn parse_input(input: &str) -> Vec<(i8, i8)> {
         .collect()
 }
 
-fn shortest_path(positions: &[Pos], start: Pos, end: Pos) -> Option<usize> {
-    let corrupted: HashSet<Pos> = positions.into_iter().cloned().collect();
+fn shortest_path(positions: &[Pos], start: Pos, end: Pos) -> Vec<Pos> {
+    let corrupted: HashSet<Pos> = positions.iter().cloned().collect();
     let mut queue = BinaryHeap::new();
     let mut visited = HashSet::new();
-    queue.push(Reverse((0, start)));
-    while let Some(Reverse((steps, node))) = queue.pop() {
+    queue.push(Reverse((0, vec![start])));
+    while let Some(Reverse((steps, path))) = queue.pop() {
+        let &node = path.last().unwrap();
         if node == end {
-            return Some(steps);
+            return path;
         }
         if visited.contains(&node) {
             continue;
@@ -37,23 +38,41 @@ fn shortest_path(positions: &[Pos], start: Pos, end: Pos) -> Option<usize> {
             if x < 0 || x > end.0 || y < 0 || y > end.1 {
                 continue;
             }
-            let next = (x, y);
-            if corrupted.contains(&next) {
+            if corrupted.contains(&(x, y)) {
                 continue;
             }
+            let mut next = path.clone();
+            next.push((x, y));
             queue.push(Reverse((steps + 1, next)));
         }
     }
-    None
+    Vec::new()
 }
 
 pub fn part_one(input: &str) -> usize {
     let positions = parse_input(input);
-    shortest_path(&positions[..1024], (0, 0), (70, 70)).unwrap()
+    shortest_path(&positions[..1024], (0, 0), (70, 70)).len() - 1
 }
 
-pub fn part_two(input: &str) -> usize {
-    0
+fn privent_coordinate(positions: &[Pos], start: Pos, end: Pos) -> String {
+    match (1..=positions.len())
+        .collect::<Vec<usize>>()
+        .binary_search_by(|&i| {
+            let path = shortest_path(&positions[..i], start, end);
+            if path.is_empty() {
+                Ordering::Greater
+            } else {
+                Ordering::Less
+            }
+        }) {
+        Err(i) => format!("{},{}", positions[i].0, positions[i].1),
+        _ => String::new(),
+    }
+}
+
+pub fn part_two(input: &str) -> String {
+    let positions = parse_input(input);
+    privent_coordinate(&positions, (0, 0), (70, 70))
 }
 
 #[cfg(test)]
@@ -65,7 +84,9 @@ mod tests {
     fn example() {
         let input = read_example(18);
         let positions = parse_input(&input);
-        assert_eq!(shortest_path(&positions[..12], (0, 0), (6, 6)), Some(22));
-        //assert_eq!(part_two(&input), "6,1");
+        let steps = shortest_path(&positions[..12], (0, 0), (6, 6)).len() - 1;
+        assert_eq!(steps, 22);
+        let p = privent_coordinate(&positions, (0, 0), (6, 6));
+        assert_eq!(p, "6,1");
     }
 }
