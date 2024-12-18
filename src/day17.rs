@@ -79,14 +79,10 @@ pub fn part_two(input: &str) -> u64 {
             .flat_map(|a| {
                 (0..8)
                     .map(|i| a | i)
-                    .filter_map(|a| {
+                    .filter(|&a| {
                         let mut comp = comp.clone();
                         comp.a = a;
-                        if comp.execute(&program) == target {
-                            Some(a)
-                        } else {
-                            None
-                        }
+                        comp.execute(&program) == target
                     })
                     .collect::<Vec<_>>()
             })
