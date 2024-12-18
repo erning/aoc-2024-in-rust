@@ -70,6 +70,10 @@ Part Two: 433
 --- Day 17: Chronospatial Computer ---
 Part One: 1,5,7,4,1,6,0,3,0
 Part Two: 108107574778365
+
+--- Day 18: RAM Run ---
+Part One: 308
+Part Two: 46,28
 ```
 
 `Apple M1 Max`
