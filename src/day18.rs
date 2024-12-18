@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 use std::collections::HashSet;
@@ -52,16 +51,22 @@ pub fn part_one(input: &str) -> usize {
 }
 
 fn privent_coordinate(positions: &[Pos], start: Pos, end: Pos) -> String {
-    match (1..=positions.len())
-        .collect::<Vec<usize>>()
-        .binary_search_by(|&i| {
-            match shortest_steps(&positions[..i], start, end) {
-                None => Ordering::Greater,
-                _ => Ordering::Less,
-            }
-        }) {
-        Err(i) => format!("{},{}", positions[i].0, positions[i].1),
-        _ => String::new(),
+    let mut a = 0;
+    let mut b = positions.len();
+    loop {
+        let m = (a + b + 1) / 2;
+        if b == m {
+            break;
+        }
+        match shortest_steps(&positions[..m], start, end) {
+            None => b = m,
+            Some(_) => a = m,
+        }
+    }
+    if b < positions.len() {
+        format!("{},{}", positions[a].0, positions[a].1)
+    } else {
+        "None".to_string()
     }
 }
 
