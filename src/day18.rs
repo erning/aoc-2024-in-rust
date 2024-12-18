@@ -19,50 +19,45 @@ fn parse_input(input: &str) -> Vec<(i8, i8)> {
         .collect()
 }
 
-fn shortest_path(positions: &[Pos], start: Pos, end: Pos) -> Vec<Pos> {
+fn shortest_steps(positions: &[Pos], start: Pos, end: Pos) -> Option<usize> {
     let corrupted: HashSet<Pos> = positions.iter().cloned().collect();
-    let mut queue = BinaryHeap::new();
     let mut visited = HashSet::new();
-    queue.push(Reverse((0, vec![start])));
-    while let Some(Reverse((steps, path))) = queue.pop() {
-        let &node = path.last().unwrap();
+    let mut queue = BinaryHeap::new();
+    queue.push(Reverse((0, start)));
+    while let Some(Reverse((steps, node))) = queue.pop() {
         if node == end {
-            return path;
+            return Some(steps);
         }
         if visited.contains(&node) {
             continue;
         }
         visited.insert(node);
         for (dx, dy) in DIRS {
-            let (x, y) = (node.0 + dx, node.1 + dy);
-            if x < 0 || x > end.0 || y < 0 || y > end.1 {
+            let next = (node.0 + dx, node.1 + dy);
+            if next.0 < 0 || next.0 > end.0 || next.1 < 0 || next.1 > end.1 {
                 continue;
             }
-            if corrupted.contains(&(x, y)) {
+            if corrupted.contains(&next) {
                 continue;
             }
-            let mut next = path.clone();
-            next.push((x, y));
             queue.push(Reverse((steps + 1, next)));
         }
     }
-    Vec::new()
+    None
 }
 
 pub fn part_one(input: &str) -> usize {
     let positions = parse_input(input);
-    shortest_path(&positions[..1024], (0, 0), (70, 70)).len() - 1
+    shortest_steps(&positions[..1024], (0, 0), (70, 70)).unwrap()
 }
 
 fn privent_coordinate(positions: &[Pos], start: Pos, end: Pos) -> String {
     match (1..=positions.len())
         .collect::<Vec<usize>>()
         .binary_search_by(|&i| {
-            let path = shortest_path(&positions[..i], start, end);
-            if path.is_empty() {
-                Ordering::Greater
-            } else {
-                Ordering::Less
+            match shortest_steps(&positions[..i], start, end) {
+                None => Ordering::Greater,
+                _ => Ordering::Less,
             }
         }) {
         Err(i) => format!("{},{}", positions[i].0, positions[i].1),
@@ -84,7 +79,7 @@ mod tests {
     fn example() {
         let input = read_example(18);
         let positions = parse_input(&input);
-        let steps = shortest_path(&positions[..12], (0, 0), (6, 6)).len() - 1;
+        let steps = shortest_steps(&positions[..12], (0, 0), (6, 6)).unwrap();
         assert_eq!(steps, 22);
         let p = privent_coordinate(&positions, (0, 0), (6, 6));
         assert_eq!(p, "6,1");
