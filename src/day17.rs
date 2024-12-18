@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Clone)]
 struct Computer {
     a: u64,
     b: u64,
@@ -69,21 +69,30 @@ pub fn part_one(input: &str) -> String {
 }
 
 pub fn part_two(input: &str) -> u64 {
-    let (mut comp, program) = parse_input(input);
-    let mut a = 1;
-    loop {
-        comp.a = a;
-        let output = comp.execute(&program);
-        if output == program[program.len() - output.len()..] {
-            if output.len() == program.len() {
-                break;
-            }
-            a <<= 3;
-        } else {
-            a += 1;
-        }
+    let (comp, program) = parse_input(input);
+    let mut candidates = vec![0];
+    for i in (0..program.len()).rev() {
+        let target = &program[i..];
+        candidates = candidates
+            .iter()
+            .map(|a| a << 3)
+            .flat_map(|a| {
+                (0..8)
+                    .map(|i| a | i)
+                    .filter_map(|a| {
+                        let mut comp = comp.clone();
+                        comp.a = a;
+                        if comp.execute(&program) == target {
+                            Some(a)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect();
     }
-    a
+    candidates.into_iter().min().unwrap()
 }
 
 #[cfg(test)]
