@@ -44,6 +44,38 @@ fn all_possible<'a>(
     }
 }
 
+#[allow(dead_code)]
+fn is_possible_dp(design: &str, patterns: &[&str]) -> bool {
+    let n = design.len();
+    let mut dp = vec![false; n + 1];
+    dp[0] = true;
+    for i in 1..n + 1 {
+        patterns
+            .iter()
+            .filter(|pattern| i >= pattern.len())
+            .map(|pattern| (i - pattern.len(), pattern))
+            .filter(|(j, pattern)| design[*j..].starts_with(*pattern))
+            .for_each(|(j, _)| dp[i] |= dp[j]);
+    }
+    dp[n]
+}
+
+#[allow(dead_code)]
+fn all_possible_dp(design: &str, patterns: &[&str]) -> usize {
+    let n = design.len();
+    let mut dp = vec![0; n + 1];
+    dp[0] = 1;
+    for i in 1..n + 1 {
+        patterns
+            .iter()
+            .filter(|pattern| i >= pattern.len())
+            .map(|pattern| (i - pattern.len(), pattern))
+            .filter(|(j, pattern)| design[*j..].starts_with(*pattern))
+            .for_each(|(j, _)| dp[i] += dp[j]);
+    }
+    dp[n]
+}
+
 pub fn part_one(input: &str) -> usize {
     let (patterns, designs) = parse_input(input);
     designs
@@ -65,6 +97,22 @@ pub fn part_two(input: &str) -> usize {
 mod tests {
     use super::*;
     use crate::read_example;
+
+    #[test]
+    fn example_dp() {
+        let input = read_example(19);
+        let (patterns, designs) = parse_input(&input);
+        let p1: usize = designs
+            .iter()
+            .filter(|design| is_possible_dp(design, &patterns))
+            .count();
+        let p2: usize = designs
+            .iter()
+            .map(|design| all_possible_dp(design, &patterns))
+            .sum();
+        assert_eq!(p1, 6);
+        assert_eq!(p2, 16);
+    }
 
     #[test]
     fn example() {
