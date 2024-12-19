@@ -74,6 +74,10 @@ Part Two: 108107574778365
 --- Day 18: RAM Run ---
 Part One: 308
 Part Two: 46,28
+
+--- Day 19: Linen Layout ---
+Part One: 358
+Part Two: 600639829400603
 ```
 
 `Apple M1 Max`
