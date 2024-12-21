@@ -70,13 +70,11 @@ fn cheats_count(dists: &Distances, mcd: i32, msd: i32) -> Counts {
             .iter()
             .map(|(dx, dy)| ((p1.0 + dx, p1.1 + dy), dx.abs() + dy.abs()))
             .filter(|(p2, _)| dists.contains_key(p2))
-            .map(|(p2, d)| (p2, dists[&p2], d))
-            .filter(|(_, d2, d)| d + d1 + msd <= *d2)
-            .for_each(|(_, d2, d)| {
-                counts
-                    .entry(d2 - d1 - d)
-                    .and_modify(|e| *e += 1)
-                    .or_insert(1);
+            .map(|(p2, cd)| (p2, dists[&p2], cd))
+            .map(|(_, d2, cd)| d2 - d1 - cd)
+            .filter(|&saved| saved >= msd)
+            .for_each(|saved| {
+                counts.entry(saved).and_modify(|e| *e += 1).or_insert(1);
             })
     });
 
@@ -102,7 +100,7 @@ pub fn part_two(input: &str) -> usize {
     let start = find_char(&grid, 'S').unwrap();
     let dists = build_dists(&grid, start);
     let mcd = 20;
-    let msd = 1000;
+    let msd = 100;
     let counts = cheats_count(&dists, mcd, msd);
     counts
         .iter()

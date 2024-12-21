@@ -81,7 +81,7 @@ Part Two: 600639829400603
 
 --- Day 20: Race Condition ---
 Part One: 1293
-Part Two: 112018
+Part Two: 977747
 ```
 
 `Apple M1 Max`
