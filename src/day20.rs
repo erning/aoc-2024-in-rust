@@ -3,106 +3,111 @@ use std::collections::BinaryHeap;
 use std::collections::HashMap;
 
 type Pos = (i32, i32);
-type Grid = Vec<Vec<char>>;
+type Grid = HashMap<Pos, char>;
 
 const DIRS: [(i32, i32); 4] = [(0, -1), (1, 0), (0, 1), (-1, 0)];
 
 fn parse_input(input: &str) -> Grid {
-    input.trim().lines().map(|s| s.chars().collect()).collect()
+    input
+        .trim()
+        .lines()
+        .enumerate()
+        .flat_map(|(y, s)| {
+            s.chars()
+                .enumerate()
+                .map(|(x, c)| ((x as i32, y as i32), c))
+                .collect::<HashMap<_, _>>()
+        })
+        .collect()
 }
 
 fn find_char(grid: &Grid, ch: char) -> Option<Pos> {
-    for (y, row) in grid.iter().enumerate() {
-        for (x, c) in row.iter().enumerate() {
-            if c == &ch {
-                return Some((x as i32, y as i32));
-            }
-        }
-    }
-    None
+    grid.iter().find(|(_, &c)| c == ch).map(|(&p, _)| p)
 }
 
-fn steps_to_position(grid: &Grid, position: Pos) -> HashMap<Pos, usize> {
-    let h = grid.len() as i32;
-    let w = grid[0].len() as i32;
-
+fn distance_from_position(grid: &Grid, position: Pos) -> HashMap<Pos, usize> {
     let mut visited: HashMap<Pos, usize> = HashMap::new();
     let mut queue: BinaryHeap<Reverse<(usize, Pos)>> = BinaryHeap::new();
     queue.push(Reverse((0, position)));
-
-    while let Some(Reverse((step, p))) = queue.pop() {
-        match grid[p.1 as usize][p.0 as usize] {
-            'S' => {}
-            '#' => continue,
-            _ => {}
+    while let Some(Reverse((d, p))) = queue.pop() {
+        match grid.get(&p) {
+            Some('#') => continue,
+            Some(_) => {}
+            None => continue,
         }
         if visited.contains_key(&p) {
             continue;
         }
-        visited.insert(p, step);
+        visited.insert(p, d);
         for (dx, dy) in DIRS {
-            let (x, y) = (p.0 + dx, p.1 + dy);
-            if x < 0 || x >= w || y < 0 || y >= h {
-                continue;
+            let next = (p.0 + dx, p.1 + dy);
+            if grid.contains_key(&next) {
+                queue.push(Reverse((d + 1, next)));
             }
-            queue.push(Reverse((step + 1, (x, y))));
         }
     }
-
     visited
 }
 
-fn count_cheat<F>(grid: &Grid, f: F) -> usize
-where
-    F: Fn(usize, usize) -> bool,
-{
-    let start = find_char(grid, 'S').unwrap();
-    let end = find_char(grid, 'E').unwrap();
-    let steps_to_start = steps_to_position(grid, start);
-    let steps_to_end = steps_to_position(grid, end);
-    let min_steps = steps_to_end.get(&start).unwrap();
+fn cheats_count(
+    distances_from_start: &HashMap<Pos, usize>,
+    cheat_distance: usize,
+    max_save_distance: usize,
+) -> HashMap<usize, usize> {
+    let mut counts: HashMap<usize, usize> = HashMap::new();
 
-    grid.iter()
-        .enumerate()
-        .flat_map(|(y, row)| {
-            row.iter()
-                .enumerate()
-                .filter(|(_, ch)| **ch == '#')
-                .map(|(x, _)| (x as i32, y as i32))
-                .collect::<Vec<Pos>>()
-        })
-        .map(|(x, y)| {
-            DIRS.iter()
-                .map(|(dx, dy)| (x + dx, y + dy))
-                .flat_map(|ps| {
-                    DIRS.iter()
-                        .map(|(dx, dy)| (x + dx, y + dy))
-                        .map(|pe| (ps, pe))
-                        .filter(|(ps, pe)| ps != pe)
-                        .filter_map(|(ps, pe)| {
-                            match (
-                                steps_to_start.get(&ps),
-                                steps_to_end.get(&pe),
-                            ) {
-                                (Some(a), Some(b)) => Some(a + b + 2),
-                                _ => None,
-                            }
-                        })
-                        .collect::<Vec<_>>()
-                })
-                .filter(|v| f(*v, *min_steps))
-                .count()
-        })
-        .sum()
+    let mut delta: Vec<Pos> = Vec::new();
+    for d in 1..=cheat_distance as i32 {
+        delta.extend([(d, 0), (-d, 0), (0, d), (0, -d)]);
+        delta.extend((1..d).map(|dx| (dx, d - dx)).flat_map(|(dx, dy)| {
+            vec![(dx, dy), (dx, -dy), (-dx, dy), (-dx, -dy)]
+        }));
+    }
+
+    for (&p, &d) in distances_from_start.iter() {
+        for (dx, dy) in delta.iter() {
+            let p2 = (p.0 + dx, p.1 + dy);
+            if !distances_from_start.contains_key(&p2) {
+                continue;
+            }
+            let d2 = *distances_from_start.get(&p2).unwrap();
+            let dc = (dx.abs() + dy.abs()) as usize;
+            if d + dc + max_save_distance <= d2 {
+                let saved = d2 - d - dc;
+                counts.entry(saved).and_modify(|e| *e += 1).or_insert(1);
+            }
+        }
+    }
+
+    counts
 }
 
 pub fn part_one(input: &str) -> usize {
     let grid = parse_input(input);
-    count_cheat(&grid, |step, min_step| step <= min_step - 100)
+    let start = find_char(&grid, 'S').unwrap();
+    let dists = distance_from_position(&grid, start);
+    let mcd = 2;
+    let msd = 100;
+    let counts = cheats_count(&dists, mcd, msd);
+    counts
+        .iter()
+        .filter(|(saved, _)| saved >= &&msd)
+        .map(|(_, count)| count)
+        .sum()
 }
 
-pub fn part_two(_input: &str) -> i32 {
-    0
+pub fn part_two(input: &str) -> usize {
+    let grid = parse_input(input);
+    let start = find_char(&grid, 'S').unwrap();
+    let dists = distance_from_position(&grid, start);
+    let mcd = 20;
+    let msd = 100;
+    let counts = cheats_count(&dists, mcd, msd);
+    counts
+        .iter()
+        .filter(|(saved, _)| saved >= &&msd)
+        .map(|(_, count)| count)
+        .sum()
 }
 
 #[cfg(test)]
@@ -114,16 +119,35 @@ mod tests {
     fn example() {
         let input = read_example(20);
         let grid = parse_input(&input);
-        assert_eq!(count_cheat(&grid, |step, m| step == m - 2), 14);
-        assert_eq!(count_cheat(&grid, |step, m| step == m - 4), 14);
-        assert_eq!(count_cheat(&grid, |step, m| step == m - 6), 2);
-        assert_eq!(count_cheat(&grid, |step, m| step == m - 8), 4);
-        assert_eq!(count_cheat(&grid, |step, m| step == m - 10), 2);
-        assert_eq!(count_cheat(&grid, |step, m| step == m - 12), 3);
-        assert_eq!(count_cheat(&grid, |step, m| step == m - 20), 1);
-        assert_eq!(count_cheat(&grid, |step, m| step == m - 36), 1);
-        assert_eq!(count_cheat(&grid, |step, m| step == m - 38), 1);
-        assert_eq!(count_cheat(&grid, |step, m| step == m - 40), 1);
-        assert_eq!(count_cheat(&grid, |step, m| step == m - 64), 1);
+        let start = find_char(&grid, 'S').unwrap();
+        let dists = distance_from_position(&grid, start);
+        // part_one
+        let counts = cheats_count(&dists, 2, 0);
+        assert_eq!(counts[&2], 14);
+        assert_eq!(counts[&6], 2);
+        assert_eq!(counts[&8], 4);
+        assert_eq!(counts[&10], 2);
+        assert_eq!(counts[&12], 3);
+        assert_eq!(counts[&20], 1);
+        assert_eq!(counts[&36], 1);
+        assert_eq!(counts[&38], 1);
+        assert_eq!(counts[&40], 1);
+        assert_eq!(counts[&64], 1);
+        // part_two
+        let counts = cheats_count(&dists, 20, 50);
+        assert_eq!(counts[&50], 32);
+        assert_eq!(counts[&52], 31);
+        assert_eq!(counts[&54], 29);
+        assert_eq!(counts[&56], 39);
+        assert_eq!(counts[&58], 25);
+        assert_eq!(counts[&60], 23);
+        assert_eq!(counts[&62], 20);
+        assert_eq!(counts[&64], 19);
+        assert_eq!(counts[&66], 12);
+        assert_eq!(counts[&68], 14);
+        assert_eq!(counts[&70], 12);
+        assert_eq!(counts[&72], 22);
+        assert_eq!(counts[&74], 4);
+        assert_eq!(counts[&76], 3);
     }
 }
