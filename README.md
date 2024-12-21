@@ -78,6 +78,10 @@ Part Two: 46,28
 --- Day 19: Linen Layout ---
 Part One: 358
 Part Two: 600639829400603
+
+--- Day 20: Race Condition ---
+Part One: 1293
+Part Two: 112018
 ```
 
 `Apple M1 Max`

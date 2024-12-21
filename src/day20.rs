@@ -4,6 +4,8 @@ use std::collections::HashMap;
 
 type Pos = (i32, i32);
 type Grid = HashMap<Pos, char>;
+type Distances = HashMap<Pos, i32>;
+type Counts = HashMap<i32, usize>;
 
 const DIRS: [(i32, i32); 4] = [(0, -1), (1, 0), (0, 1), (-1, 0)];
 
@@ -25,9 +27,9 @@ fn find_char(grid: &Grid, ch: char) -> Option<Pos> {
     grid.iter().find(|(_, &c)| c == ch).map(|(&p, _)| p)
 }
 
-fn distance_from_position(grid: &Grid, position: Pos) -> HashMap<Pos, usize> {
-    let mut visited: HashMap<Pos, usize> = HashMap::new();
-    let mut queue: BinaryHeap<Reverse<(usize, Pos)>> = BinaryHeap::new();
+fn build_dists(grid: &Grid, position: Pos) -> Distances {
+    let mut dists = Distances::new();
+    let mut queue: BinaryHeap<Reverse<(i32, Pos)>> = BinaryHeap::new();
     queue.push(Reverse((0, position)));
     while let Some(Reverse((d, p))) = queue.pop() {
         match grid.get(&p) {
@@ -35,10 +37,10 @@ fn distance_from_position(grid: &Grid, position: Pos) -> HashMap<Pos, usize> {
             Some(_) => {}
             None => continue,
         }
-        if visited.contains_key(&p) {
+        if dists.contains_key(&p) {
             continue;
         }
-        visited.insert(p, d);
+        dists.insert(p, d);
         for (dx, dy) in DIRS {
             let next = (p.0 + dx, p.1 + dy);
             if grid.contains_key(&next) {
@@ -46,38 +48,37 @@ fn distance_from_position(grid: &Grid, position: Pos) -> HashMap<Pos, usize> {
             }
         }
     }
-    visited
+    dists
 }
 
-fn cheats_count(
-    distances_from_start: &HashMap<Pos, usize>,
-    cheat_distance: usize,
-    max_save_distance: usize,
-) -> HashMap<usize, usize> {
-    let mut counts: HashMap<usize, usize> = HashMap::new();
+fn cheats_count(dists: &Distances, mcd: i32, msd: i32) -> Counts {
+    let mut counts = Counts::new();
 
-    let mut delta: Vec<Pos> = Vec::new();
-    for d in 1..=cheat_distance as i32 {
-        delta.extend([(d, 0), (-d, 0), (0, d), (0, -d)]);
-        delta.extend((1..d).map(|dx| (dx, d - dx)).flat_map(|(dx, dy)| {
-            vec![(dx, dy), (dx, -dy), (-dx, dy), (-dx, -dy)]
-        }));
-    }
-
-    for (&p, &d) in distances_from_start.iter() {
-        for (dx, dy) in delta.iter() {
-            let p2 = (p.0 + dx, p.1 + dy);
-            if !distances_from_start.contains_key(&p2) {
-                continue;
-            }
-            let d2 = *distances_from_start.get(&p2).unwrap();
-            let dc = (dx.abs() + dy.abs()) as usize;
-            if d + dc + max_save_distance <= d2 {
-                let saved = d2 - d - dc;
-                counts.entry(saved).and_modify(|e| *e += 1).or_insert(1);
-            }
+    let delta = {
+        let mut v: Vec<Pos> = Vec::new();
+        for i in 1..=mcd {
+            v.extend([(i, 0), (-i, 0), (0, i), (0, -i)]);
+            v.extend((1..i).map(|dx| (dx, i - dx)).flat_map(|(dx, dy)| {
+                vec![(dx, dy), (dx, -dy), (-dx, dy), (-dx, -dy)]
+            }));
         }
-    }
+        v
+    };
+
+    dists.iter().for_each(|(p1, d1)| {
+        delta
+            .iter()
+            .map(|(dx, dy)| ((p1.0 + dx, p1.1 + dy), dx.abs() + dy.abs()))
+            .filter(|(p2, _)| dists.contains_key(p2))
+            .map(|(p2, d)| (p2, dists[&p2], d))
+            .filter(|(_, d2, d)| d + d1 + msd <= *d2)
+            .for_each(|(_, d2, d)| {
+                counts
+                    .entry(d2 - d1 - d)
+                    .and_modify(|e| *e += 1)
+                    .or_insert(1);
+            })
+    });
 
     counts
 }
@@ -85,7 +86,7 @@ fn cheats_count(
 pub fn part_one(input: &str) -> usize {
     let grid = parse_input(input);
     let start = find_char(&grid, 'S').unwrap();
-    let dists = distance_from_position(&grid, start);
+    let dists = build_dists(&grid, start);
     let mcd = 2;
     let msd = 100;
     let counts = cheats_count(&dists, mcd, msd);
@@ -99,9 +100,9 @@ pub fn part_one(input: &str) -> usize {
 pub fn part_two(input: &str) -> usize {
     let grid = parse_input(input);
     let start = find_char(&grid, 'S').unwrap();
-    let dists = distance_from_position(&grid, start);
+    let dists = build_dists(&grid, start);
     let mcd = 20;
-    let msd = 100;
+    let msd = 1000;
     let counts = cheats_count(&dists, mcd, msd);
     counts
         .iter()
@@ -120,7 +121,7 @@ mod tests {
         let input = read_example(20);
         let grid = parse_input(&input);
         let start = find_char(&grid, 'S').unwrap();
-        let dists = distance_from_position(&grid, start);
+        let dists = build_dists(&grid, start);
         // part_one
         let counts = cheats_count(&dists, 2, 0);
         assert_eq!(counts[&2], 14);
