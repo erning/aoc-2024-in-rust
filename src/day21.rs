@@ -198,14 +198,20 @@ fn numeric_keypad_rule() -> Rule {
     ])
 }
 
-fn expend(a: char, s: &str, rule: &Rule, prev: &str, ret: &mut Vec<String>) {
+fn expend(a: char, s: &str, rule: &Rule) -> Vec<String> {
+    let empty = vec![""];
     if let Some(b) = s.chars().next() {
-        for exp in rule.get(&(a, b)).unwrap_or(&vec![""]) {
-            let expended: String = prev.to_string() + exp + "A";
-            expend(b, &s[1..], rule, &expended, ret);
-        }
+        let lhs = rule.get(&(a, b)).unwrap_or(&empty);
+        let rhs = expend(b, &s[1..], rule);
+        lhs.iter()
+            .flat_map(|v1| {
+                rhs.iter()
+                    .map(|v2| String::new() + v1 + "A" + v2)
+                    .collect::<Vec<String>>()
+            })
+            .collect()
     } else {
-        ret.push(prev.to_string());
+        vec![String::new()]
     }
 }
 
@@ -217,21 +223,21 @@ pub fn part_one(input: &str) -> usize {
     let nkrule = numeric_keypad_rule();
     let dkrule = directional_keypad_rule();
 
-    let ret = parse_input(input);
-
-    ret.iter()
-        .map(|r| {
-            let mut ret1: Vec<String> = vec![r.to_string()];
-            for i in 0..3 {
-                let mut ret2: Vec<String> = Vec::new();
-                let rule = if i == 0 { &nkrule } else { &dkrule };
-                for item in ret1 {
-                    expend('A', &item, &rule, "", &mut ret2);
+    let input = parse_input(input);
+    input
+        .iter()
+        .map(|s| {
+            let mut expended = expend('A', s, &nkrule);
+            for _ in 1..3 {
+                let mut tmp = Vec::new();
+                for s in expended.iter() {
+                    tmp.append(&mut expend('A', s, &dkrule));
                 }
-                ret1 = ret2;
+                expended = tmp;
             }
-            let v = ret1.iter().map(|s| s.len()).min().unwrap();
-            let w = r[..r.len() - 1].parse::<usize>().unwrap();
+            let v = expended.iter().map(|s| s.len()).min().unwrap();
+            let w = s[..s.len() - 1].parse::<usize>().unwrap();
+            //println!("{:?}", (s, v, w));
             v * w
         })
         .sum()
