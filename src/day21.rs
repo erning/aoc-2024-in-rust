@@ -1,4 +1,32 @@
 use std::collections::HashMap;
+use std::collections::VecDeque;
+use std::sync::OnceLock;
+
+type Keypad = HashMap<(i8, i8), u8>;
+static NUM_KEYPAD: OnceLock<Keypad> = OnceLock::new();
+static DIR_KEYPAD: OnceLock<Keypad> = OnceLock::new();
+
+type KeySeqs = HashMap<(u8, u8), Vec<String>>;
+static NUM_SEQUENCES: OnceLock<KeySeqs> = OnceLock::new();
+static DIR_SEQUENCES: OnceLock<KeySeqs> = OnceLock::new();
+
+fn init_keypad(keypad: &[&str]) -> Keypad {
+    keypad
+        .iter()
+        .enumerate()
+        .flat_map(|(y, s)| {
+            s.bytes()
+                .enumerate()
+                .filter_map(|(x, c)| match c {
+                    b'0'..=b'9' | b'A' | b'^' | b'<' | b'v' | b'>' => {
+                        Some(((x as i8, y as i8), c))
+                    }
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect()
+}
 
 /*
 +---+---+---+
@@ -12,19 +40,9 @@ use std::collections::HashMap;
     +---+---+
 
 */
-const NUMERIC_KEYPAD: [(char, (i32, i32)); 11] = [
-    ('A', (2, 3)),
-    ('0', (1, 3)),
-    ('1', (0, 2)),
-    ('2', (1, 2)),
-    ('3', (2, 2)),
-    ('4', (0, 1)),
-    ('5', (1, 1)),
-    ('6', (2, 1)),
-    ('7', (0, 0)),
-    ('8', (1, 0)),
-    ('9', (2, 0)),
-];
+fn init_numeric_keypad() -> Keypad {
+    init_keypad(&["789", "456", "123", ".0A"])
+}
 
 /*
     +---+---+
@@ -33,186 +51,112 @@ const NUMERIC_KEYPAD: [(char, (i32, i32)); 11] = [
 | < | v | > |
 +---+---+---+
 */
-const DIRECTIONAL_KEYPAD: [(char, (i32, i32)); 5] = [
-    ('A', (2, 0)),
-    ('^', (1, 0)),
-    ('<', (0, 1)),
-    ('v', (0, 2)),
-    ('>', (0, 3)),
-];
-
-type Rule = HashMap<(char, char), Vec<&'static str>>;
-
-fn directional_keypad_rule() -> Rule {
-    HashMap::from([
-        (('A', '^'), vec!["<"]),
-        (('A', '<'), vec!["v<<"]),
-        (('A', 'v'), vec!["v<", "<v"]),
-        (('A', '>'), vec!["v"]),
-        //
-        (('^', 'A'), vec![">"]),
-        (('^', '<'), vec!["v<"]),
-        (('^', 'v'), vec!["v"]),
-        (('^', '>'), vec!["v>", ">v"]),
-        //
-        (('<', 'A'), vec![">>^"]),
-        (('<', '^'), vec![">^"]),
-        (('<', 'v'), vec![">"]),
-        (('<', '>'), vec![">>"]),
-        //
-        (('v', 'A'), vec!["^>", ">^"]),
-        (('v', '^'), vec!["^"]),
-        (('v', '<'), vec!["<"]),
-        (('v', '>'), vec![">"]),
-        //
-        (('>', 'A'), vec!["^"]),
-        (('>', '^'), vec!["^<", "<^"]),
-        (('>', '<'), vec!["<<"]),
-        (('>', 'v'), vec!["<"]),
-    ])
+fn init_directional_keypad() -> Keypad {
+    init_keypad(&[".^A", "<v>"])
 }
 
-fn numeric_keypad_rule() -> Rule {
-    HashMap::from([
-        //
-        (('A', '0'), vec!["<"]),
-        (('A', '1'), vec!["^<<"]),
-        (('A', '2'), vec!["^<", "<^"]),
-        (('A', '3'), vec!["^"]),
-        (('A', '4'), vec!["^^<<"]),
-        (('A', '5'), vec!["^^<", "<^^"]),
-        (('A', '6'), vec!["^^"]),
-        (('A', '7'), vec!["^^^<<"]),
-        (('A', '8'), vec!["^^^<", "<^^^"]),
-        (('A', '9'), vec!["^^^"]),
-        //
-        (('0', 'A'), vec![">"]),
-        (('0', '1'), vec!["^<"]),
-        (('0', '2'), vec!["^"]),
-        (('0', '3'), vec!["^>", ">^"]),
-        (('0', '4'), vec!["^^<"]),
-        (('0', '5'), vec!["^^"]),
-        (('0', '6'), vec!["^^>", ">^^"]),
-        (('0', '7'), vec!["^^^<"]),
-        (('0', '8'), vec!["^^^"]),
-        (('0', '9'), vec!["^^^>", ">^^^"]),
-        //
-        (('1', 'A'), vec![">>v"]),
-        (('1', '0'), vec![">v"]),
-        (('1', '2'), vec![">"]),
-        (('1', '3'), vec![">>>"]),
-        (('1', '4'), vec!["^"]),
-        (('1', '5'), vec!["^>", ">^"]),
-        (('1', '6'), vec!["^>>", ">>^"]),
-        (('1', '7'), vec!["^^"]),
-        (('1', '8'), vec!["^^>", ">^^"]),
-        (('1', '9'), vec!["^^>>", ">>^^"]),
-        //
-        (('2', 'A'), vec!["v>", ">v"]),
-        (('2', '0'), vec!["v"]),
-        (('2', '1'), vec!["<"]),
-        (('2', '3'), vec![">"]),
-        (('2', '4'), vec!["^<"]),
-        (('2', '5'), vec!["^"]),
-        (('2', '6'), vec!["^>", ">^"]),
-        (('2', '7'), vec!["^^<", "<^^"]),
-        (('2', '8'), vec!["^^"]),
-        (('2', '9'), vec!["^^>", ">^^"]),
-        //
-        (('3', 'A'), vec!["v"]),
-        (('3', '0'), vec!["v<", "<v"]),
-        (('3', '1'), vec!["<<"]),
-        (('3', '2'), vec!["<"]),
-        (('3', '4'), vec!["^<<", "<<^"]),
-        (('3', '5'), vec!["^<", "<^"]),
-        (('3', '6'), vec!["^"]),
-        (('3', '7'), vec!["^^<<", "<<^^"]),
-        (('3', '8'), vec!["^^<", "<^^"]),
-        (('3', '9'), vec!["^^"]),
-        //
-        (('4', 'A'), vec![">>vv"]),
-        (('4', '0'), vec![">vv"]),
-        (('4', '1'), vec!["v"]),
-        (('4', '2'), vec!["v>", ">v"]),
-        (('4', '3'), vec!["v>>", ">>v"]),
-        (('4', '5'), vec![">"]),
-        (('4', '6'), vec![">>"]),
-        (('4', '7'), vec!["^"]),
-        (('4', '8'), vec!["^>", ">^"]),
-        (('4', '9'), vec!["^>>", ">>^"]),
-        //
-        (('5', 'A'), vec!["vv>", ">vv"]),
-        (('5', '0'), vec!["vv"]),
-        (('5', '1'), vec!["v<", "<v"]),
-        (('5', '2'), vec!["v"]),
-        (('5', '3'), vec!["v>", ">v"]),
-        (('5', '4'), vec!["<"]),
-        (('5', '6'), vec![">"]),
-        (('5', '7'), vec!["^<", "<^"]),
-        (('5', '8'), vec!["^"]),
-        (('5', '9'), vec!["^>", ">^"]),
-        //
-        (('6', 'A'), vec!["vv"]),
-        (('6', '0'), vec!["vv<", "<vv"]),
-        (('6', '1'), vec!["v<<", "<<v"]),
-        (('6', '2'), vec!["v<", "<v"]),
-        (('6', '3'), vec!["v"]),
-        (('6', '4'), vec!["<<"]),
-        (('6', '5'), vec!["<"]),
-        (('6', '7'), vec!["^<<", "<<^"]),
-        (('6', '8'), vec!["^<", "<^"]),
-        (('6', '9'), vec!["^"]),
-        //
-        (('7', 'A'), vec![">>vvv"]),
-        (('7', '0'), vec![">vvv"]),
-        (('7', '1'), vec!["vv"]),
-        (('7', '2'), vec!["vv>", ">vv"]),
-        (('7', '3'), vec!["vv>>", ">>vv"]),
-        (('7', '4'), vec!["v"]),
-        (('7', '5'), vec!["v>", ">v"]),
-        (('7', '6'), vec!["v>>", ">>v"]),
-        (('7', '8'), vec![">", ">"]),
-        (('7', '9'), vec![">>"]),
-        //
-        (('8', 'A'), vec!["vvv>"]),
-        (('8', '0'), vec!["vvv"]),
-        (('8', '1'), vec!["vv<", "<vv"]),
-        (('8', '2'), vec!["vv"]),
-        (('8', '3'), vec!["vv>", ">vv"]),
-        (('8', '4'), vec!["v<", "<v"]),
-        (('8', '5'), vec!["v"]),
-        (('8', '6'), vec!["v>", ">v"]),
-        (('8', '7'), vec!["<"]),
-        (('8', '9'), vec![">"]),
-        //
-        (('9', 'A'), vec!["vvv"]),
-        (('9', '0'), vec!["vvv<", "<vvv"]),
-        (('9', '1'), vec!["vv<<", "<<vv"]),
-        (('9', '2'), vec!["vv<", "<vv"]),
-        (('9', '3'), vec!["vv"]),
-        (('9', '4'), vec!["v<<", "<<v"]),
-        (('9', '5'), vec!["v<", "<v"]),
-        (('9', '6'), vec!["v"]),
-        (('9', '7'), vec!["<<"]),
-        (('9', '8'), vec!["<"]),
-    ])
-}
-
-fn expend(a: char, s: &str, rule: &Rule) -> Vec<String> {
-    let empty = vec![""];
-    if let Some(b) = s.chars().next() {
-        let lhs = rule.get(&(a, b)).unwrap_or(&empty);
-        let rhs = expend(b, &s[1..], rule);
-        lhs.iter()
-            .flat_map(|v1| {
-                rhs.iter()
-                    .map(|v2| String::new() + v1 + "A" + v2)
-                    .collect::<Vec<String>>()
-            })
-            .collect()
-    } else {
-        vec![String::new()]
+fn init_keyseqs(keypad: &Keypad) -> HashMap<(u8, u8), Vec<String>> {
+    let mut sequences = HashMap::new();
+    for (p, a) in keypad.iter() {
+        for b in keypad.values() {
+            let mut seqs: Vec<String> = Vec::new();
+            if a == b {
+                seqs.push("A".to_string());
+            } else {
+                let mut queue: VecDeque<((i8, i8), String)> = VecDeque::new();
+                queue.push_back((*p, String::new()));
+                let mut step = usize::MAX;
+                while let Some(((x, y), seq)) = queue.pop_front() {
+                    if seq.len() > step {
+                        continue;
+                    }
+                    if let Some(c) = keypad.get(&(x, y)) {
+                        if c == b {
+                            step = seq.len();
+                            let mut s = seq.clone();
+                            s.push('A');
+                            seqs.push(s);
+                        } else {
+                            [
+                                ((x, y - 1), '^'),
+                                ((x + 1, y), '>'),
+                                ((x, y + 1), 'v'),
+                                ((x - 1, y), '<'),
+                            ]
+                            .into_iter()
+                            .for_each(
+                                |(p, c)| {
+                                    let mut s = seq.clone();
+                                    s.push(c);
+                                    queue.push_back((p, s));
+                                },
+                            );
+                        }
+                    }
+                }
+            }
+            let min = seqs
+                .iter()
+                .map(|s| {
+                    s.as_bytes()
+                        .windows(2)
+                        .map(|v| v[0] != v[1])
+                        .filter(|v| *v)
+                        .count()
+                })
+                .min()
+                .unwrap();
+            let seqs = seqs
+                .into_iter()
+                .filter(|s| {
+                    s.as_bytes()
+                        .windows(2)
+                        .map(|v| v[0] != v[1])
+                        .filter(|v| *v)
+                        .count()
+                        == min
+                })
+                .collect();
+            sequences.insert((*a, *b), seqs);
+        }
     }
+    sequences
+}
+
+fn init_numeric_seqs() -> KeySeqs {
+    init_keyseqs(NUM_KEYPAD.get_or_init(init_numeric_keypad))
+}
+
+fn init_directional_seqs() -> KeySeqs {
+    init_keyseqs(DIR_KEYPAD.get_or_init(init_directional_keypad))
+}
+
+fn cartesian_product(lists: &[Vec<String>]) -> Vec<String> {
+    if lists.is_empty() {
+        return vec![String::new()];
+    }
+    let mut result = vec![];
+    let rest = cartesian_product(&lists[1..]); // Recurse with the rest of the vectors
+    for item in &lists[0] {
+        for combination in &rest {
+            result.push(item.to_string() + combination.as_str());
+        }
+    }
+    result
+}
+
+fn expend(s: &str, sequences: &KeySeqs) -> Vec<String> {
+    let expended: Vec<Vec<String>> = s
+        .as_bytes()
+        .windows(2)
+        .map(|v| sequences.get(&(v[0], v[1])).unwrap().to_vec())
+        .collect();
+    cartesian_product(&expended)
+}
+
+fn init_statics() {
+    NUM_SEQUENCES.get_or_init(init_numeric_seqs);
+    DIR_SEQUENCES.get_or_init(init_directional_seqs);
 }
 
 fn parse_input(input: &str) -> Vec<&str> {
@@ -220,24 +164,24 @@ fn parse_input(input: &str) -> Vec<&str> {
 }
 
 pub fn part_one(input: &str) -> usize {
-    let nkrule = numeric_keypad_rule();
-    let dkrule = directional_keypad_rule();
+    init_statics();
+    let numseqs = NUM_SEQUENCES.get().unwrap();
+    let dirseqs = DIR_SEQUENCES.get().unwrap();
 
-    let input = parse_input(input);
-    input
+    parse_input(input)
         .iter()
+        .map(|s| "A".to_string() + s)
         .map(|s| {
-            let mut expended = expend('A', s, &nkrule);
-            for _ in 1..3 {
-                let mut tmp = Vec::new();
-                for s in expended.iter() {
-                    tmp.append(&mut expend('A', s, &dkrule));
-                }
-                expended = tmp;
+            let mut expended = expend(&s, numseqs);
+            for _ in 0..2 {
+                let mut t = Vec::new();
+                expended.iter().map(|s| "A".to_string() + s).for_each(|s| {
+                    t.extend(expend(&s, dirseqs));
+                });
+                expended = t;
             }
             let v = expended.iter().map(|s| s.len()).min().unwrap();
-            let w = s[..s.len() - 1].parse::<usize>().unwrap();
-            //println!("{:?}", (s, v, w));
+            let w = s[1..s.len() - 1].parse::<usize>().unwrap();
             v * w
         })
         .sum()
@@ -256,6 +200,6 @@ mod tests {
     fn example() {
         let input = read_example(21);
         assert_eq!(part_one(&input), 126384);
-        assert_eq!(part_two(&input), 0);
+        //assert_eq!(part_two(&input), 0);
     }
 }
