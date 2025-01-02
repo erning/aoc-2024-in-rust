@@ -82,6 +82,10 @@ Part Two: 600639829400603
 --- Day 20: Race Condition ---
 Part One: 1293
 Part Two: 977747
+
+--- Day 21: Keypad Conundrum ---
+Part One: 206798
+Part Two: 251508572750680
 ```
 
 `Apple M1 Max`

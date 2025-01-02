@@ -10,6 +10,8 @@ type KeySeqs = HashMap<(u8, u8), Vec<String>>;
 static NUM_SEQUENCES: OnceLock<KeySeqs> = OnceLock::new();
 static DIR_SEQUENCES: OnceLock<KeySeqs> = OnceLock::new();
 
+type Cache = HashMap<(u8, u8, usize), usize>;
+
 fn init_keypad(keypad: &[&str]) -> Keypad {
     keypad
         .iter()
@@ -145,18 +147,43 @@ fn cartesian_product(lists: &[Vec<String>]) -> Vec<String> {
     result
 }
 
-fn expend(s: &str, sequences: &KeySeqs) -> Vec<String> {
+fn expend(s: &str, keyseqs: &KeySeqs) -> Vec<String> {
     let expended: Vec<Vec<String>> = s
         .as_bytes()
         .windows(2)
-        .map(|v| sequences.get(&(v[0], v[1])).unwrap().to_vec())
+        .map(|v| keyseqs.get(&(v[0], v[1])).unwrap().to_vec())
         .collect();
     cartesian_product(&expended)
 }
 
-fn init_statics() {
-    NUM_SEQUENCES.get_or_init(init_numeric_seqs);
-    DIR_SEQUENCES.get_or_init(init_directional_seqs);
+fn compute_length(
+    a: u8,
+    b: u8,
+    d: usize,
+    keyseqs: &KeySeqs,
+    cache: &mut Cache,
+) -> usize {
+    let k = (a, b, d);
+    if let Some(length) = cache.get(&k) {
+        return *length;
+    }
+    let seqs = keyseqs.get(&(a, b)).unwrap();
+    if d <= 1 {
+        return seqs[0].len();
+    }
+    let length = seqs
+        .iter()
+        .map(|s| "A".to_string() + s)
+        .map(|s| {
+            s.as_bytes()
+                .windows(2)
+                .map(|v| compute_length(v[0], v[1], d - 1, keyseqs, cache))
+                .sum()
+        })
+        .min()
+        .unwrap();
+    cache.insert(k, length);
+    length
 }
 
 fn parse_input(input: &str) -> Vec<&str> {
@@ -164,9 +191,8 @@ fn parse_input(input: &str) -> Vec<&str> {
 }
 
 pub fn part_one(input: &str) -> usize {
-    init_statics();
-    let numseqs = NUM_SEQUENCES.get().unwrap();
-    let dirseqs = DIR_SEQUENCES.get().unwrap();
+    let numseqs = NUM_SEQUENCES.get_or_init(init_numeric_seqs);
+    let dirseqs = DIR_SEQUENCES.get_or_init(init_directional_seqs);
 
     parse_input(input)
         .iter()
@@ -187,8 +213,35 @@ pub fn part_one(input: &str) -> usize {
         .sum()
 }
 
-pub fn part_two(_input: &str) -> i32 {
-    0
+pub fn part_two(input: &str) -> usize {
+    let numseqs = NUM_SEQUENCES.get_or_init(init_numeric_seqs);
+    let dirseqs = DIR_SEQUENCES.get_or_init(init_directional_seqs);
+
+    let mut cache: HashMap<(u8, u8, usize), usize> = HashMap::new();
+    parse_input(input)
+        .iter()
+        .map(|s| {
+            let s = "A".to_string() + s;
+            let expended = expend(&s, numseqs);
+            let v: usize = expended
+                .iter()
+                .map(|s| "A".to_string() + s)
+                .map(|s| {
+                    s.as_bytes()
+                        .windows(2)
+                        .map(|v| {
+                            compute_length(
+                                v[0], v[1], 25, dirseqs, &mut cache,
+                            )
+                        })
+                        .sum()
+                })
+                .min()
+                .unwrap();
+            let w = s[1..s.len() - 1].parse::<usize>().unwrap();
+            v * w
+        })
+        .sum()
 }
 
 #[cfg(test)]
@@ -200,6 +253,5 @@ mod tests {
     fn example() {
         let input = read_example(21);
         assert_eq!(part_one(&input), 126384);
-        //assert_eq!(part_two(&input), 0);
     }
 }
