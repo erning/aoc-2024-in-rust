@@ -86,6 +86,10 @@ Part Two: 977747
 --- Day 21: Keypad Conundrum ---
 Part One: 206798
 Part Two: 251508572750680
+
+--- Day 22: Monkey Market ---
+Part One: 14622549304
+Part Two: 1735
 ```
 
 `Apple M1 Max`
