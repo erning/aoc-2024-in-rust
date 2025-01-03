@@ -45,8 +45,37 @@ pub fn part_one(input: &str) -> usize {
     answers.len()
 }
 
-pub fn part_two(_input: &str) -> usize {
-    0
+pub fn part_two(input: &str) -> String {
+    let input = parse_input(input);
+
+    let connected: HashSet<(&str, &str)> = input
+        .iter()
+        .flat_map(|&(a, b)| vec![(a, b), (b, a)])
+        .collect();
+    let nodes: HashSet<&str> =
+        input.iter().flat_map(|&(a, b)| vec![a, b]).collect();
+    let mut clusters: Vec<Vec<&str>> =
+        nodes.iter().map(|&node| vec![node]).collect();
+
+    for &a in nodes.iter() {
+        for cluster in clusters.iter_mut() {
+            if cluster.iter().all(|&b| connected.contains(&(a, b))) {
+                cluster.push(a);
+            }
+        }
+    }
+    for cluster in clusters.iter_mut() {
+        cluster.sort_unstable();
+    }
+    let clusters = clusters
+        .into_iter()
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+
+    let size = clusters.iter().map(|v| v.len()).max().unwrap();
+
+    clusters.iter().find(|v| v.len() == size).unwrap().join(",")
 }
 
 #[cfg(test)]
@@ -58,6 +87,6 @@ mod tests {
     fn example() {
         let input = read_example(23);
         assert_eq!(part_one(&input), 7);
-        assert_eq!(part_two(&input), 0);
+        assert_eq!(part_two(&input), "co,de,ka,ta");
     }
 }

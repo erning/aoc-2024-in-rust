@@ -90,6 +90,10 @@ Part Two: 251508572750680
 --- Day 22: Monkey Market ---
 Part One: 14622549304
 Part Two: 1735
+
+--- Day 23: LAN Party ---
+Part One: 1344
+Part Two: ab,al,cq,cr,da,db,dr,fw,ly,mn,od,py,uh
 ```
 
 `Apple M1 Max`
