@@ -27,12 +27,11 @@ pub fn part_one(input: &str) -> i32 {
         .iter()
         .map(|row| {
             (0..row.len() - 1)
-                .map(|i| {
+                .all(|i| {
                     (i + 1..row.len())
                         .map(|j| (row[i], row[j]))
                         .all(|(a, b)| rules.contains(&(a, b)))
                 })
-                .all(|is_ordered| is_ordered)
         })
         .enumerate()
         .filter(|&(_, is_correct)| is_correct)
@@ -47,12 +46,11 @@ pub fn part_two(input: &str) -> i32 {
         .iter()
         .map(|row| {
             (0..row.len() - 1)
-                .map(|i| {
+                .all(|i| {
                     (i + 1..row.len())
                         .map(|j| (row[i], row[j]))
                         .all(|(a, b)| rules.contains(&(a, b)))
                 })
-                .all(|is_ordered| is_ordered)
         })
         .enumerate()
         .filter(|&(_, is_correct)| !is_correct)

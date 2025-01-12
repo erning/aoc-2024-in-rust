@@ -118,6 +118,6 @@ mod tests {
         assert_eq!(part_one(&input), 37327623);
 
         let input = "1\n2\n3\n2024";
-        assert_eq!(part_two(&input), 23);
+        assert_eq!(part_two(input), 23);
     }
 }
