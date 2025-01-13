@@ -94,6 +94,14 @@ Part Two: 1735
 --- Day 23: LAN Party ---
 Part One: 1344
 Part Two: ab,al,cq,cr,da,db,dr,fw,ly,mn,od,py,uh
+
+--- Day 24: Crossed Wires ---
+Part One: 36035961805936
+Part Two: jqf,mdd,skh,wpd,wts,z11,z19,z37
+
+--- Day 25: Code Chronicle  ---
+Part One: 3264
+Part Two:
 ```
 
 `Apple M1 Max`
